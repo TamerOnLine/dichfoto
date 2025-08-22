@@ -1,163 +1,104 @@
-/* ==========================================================================
-   الأساسيات
-   ========================================================================== */
-:root {
-  /* ألوان */
-  --color-bg: #ffffff;
-  --color-fg: #0f172a;
-  --color-muted: #64748b;
-  --color-brand: #2563eb;
-  --color-brand-dark: #1d4ed8;
-  --color-border: #e2e8f0;
-  --color-surface: #f8fafc;
-
-  /* خطوط */
-  --font-main: 'Inter', system-ui, sans-serif;
-  --font-heading: 'Poppins', sans-serif;
-
-  /* قياسات */
+/* ====== غلاف المعرض ====== */
+.album-wrap {
+  --gap: 10px;
   --radius: 12px;
-  --gap: 8px;
-
-  /* ظلال */
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
-  --shadow-md: 0 4px 8px rgba(0,0,0,0.12);
+  --overlap-sm: 18px;   /* مقدار التداخل البسيط */
+  --overlap-md: 32px;   /* مقدار تداخل أكبر */
+  --shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
+  padding: 8px 0 40px; /* مسافة سفليّة حتى ما تقطع التداخل الأخير */
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-body {
-  font-family: var(--font-main);
-  background: var(--color-bg);
-  color: var(--color-fg);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* ==========================================================================
-   هيكل عام
-   ========================================================================== */
-.container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 var(--gap);
-}
-
-header {
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
-  padding: 1rem 0;
-  box-shadow: var(--shadow-sm);
-}
-
-header h1 {
-  font-family: var(--font-heading);
-  font-size: 1.6rem;
-  color: var(--color-brand);
-}
-
-footer {
-  margin-top: 3rem;
-  padding: 1.5rem 0;
-  text-align: center;
-  font-size: 0.9rem;
-  color: var(--color-muted);
-  border-top: 1px solid var(--color-border);
-}
-
-/* ==========================================================================
-   أزرار
-   ========================================================================== */
-.btn {
-  display: inline-block;
-  padding: 0.6rem 1.2rem;
-  background: var(--color-brand);
-  color: #fff;
-  border-radius: var(--radius);
-  font-weight: 500;
-  text-decoration: none;
-  transition: background 0.2s ease;
-}
-.btn:hover {
-  background: var(--color-brand-dark);
-}
-
-/* ==========================================================================
-   فورمات
-   ========================================================================== */
-form {
-  display: grid;
-  gap: var(--gap);
-  max-width: 400px;
-}
-
-input, select, textarea {
-  padding: 0.6rem 0.8rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  font: inherit;
-}
-
-label {
-  font-weight: 500;
-}
-
-/* ==========================================================================
-   جاليري الصور
-   ========================================================================== */
+/* ====== الشبكة ====== */
 .gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: var(--gap);
-  margin-top: 2rem;
+  grid-auto-rows: 1px; /* خدعة لحساب الارتفاع بالـ span */
+  grid-template-columns: repeat(12, 1fr);
+  align-items: start;
+  /* مساحة علوية صغيرة حتى ما ينقص أول صف وقت التداخل */
+  padding-top: var(--overlap-md);
 }
 
-.gallery img {
-  border-radius: 0;   /* زوايا قائمة */
-  box-shadow: var(--shadow-md);
+/* موبايل: عمودين */
+@media (max-width: 599px) {
+  .gallery { grid-template-columns: repeat(2, 1fr); }
 }
 
-.gallery img:hover {
-  transform: scale(1.05);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+/* تابلت: 6 أعمدة */
+@media (min-width: 600px) and (max-width: 1023px) {
+  .gallery { grid-template-columns: repeat(6, 1fr); }
 }
 
-/* ==========================================================================
-   كروت
-   ========================================================================== */
-/* صور داخل الكروت */
-.card img {
-  border-radius: 0;   /* زوايا قائمة */
+/* ديسكتوب: 12 عمود */
+@media (min-width: 1024px) {
+  .gallery { grid-template-columns: repeat(12, 1fr); }
 }
 
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-md);
+/* ====== البطاقة/الصورة ====== */
+.photo {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: #f1f5f9;
+  box-shadow: var(--shadow);
+
+  /* العرض الافتراضي عبر الأعمدة (يتغير ريسبونسف) */
+  grid-column: span 12;
+  /* ارتفاع افتراضي محسوب: نخلي كل عنصر يساوي 220px تقريبياً */
+  /* بما أننا حاطين grid-auto-rows:1px، نحدد الارتفاع بالـ span */
+  grid-row: span 220;
 }
 
-.card h3 {
-  font-family: var(--font-heading);
-  margin-bottom: 0.5rem;
+.photo a,
+.photo img { display: block; width: 100%; height: 100%; }
+
+.photo img {
+  object-fit: cover;
+  transform: translateZ(0);
+  transition: transform .35s ease;
 }
 
-/* ==========================================================================
-   ريسبونسيف
-   ========================================================================== */
-@media (max-width: 768px) {
-  header h1 {
-    font-size: 1.3rem;
-  }
+.photo:hover img { transform: scale(1.035); }
 
-  .btn {
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-  }
+/* أعمدة مختلفة حسب العرض */
+@media (min-width: 600px) and (max-width: 1023px) {
+  .photo { grid-column: span 3; }   /* 2 صور بالصف */
+}
+@media (min-width: 1024px) {
+  .photo { grid-column: span 4; }   /* 3 صور بالصف */
+}
 
-  .gallery {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  }
+/* عناصر أطول لتعميق التداخل */
+.photo.tall { grid-row: span 320; }
+
+/* ====== التداخل بين السطور ====== */
+/* تحريك لأعلى بمقدار بسيط/متوسط مع ضبط تراكب الطبقات */
+.photo.shift-up-sm {
+  margin-top: calc(var(--overlap-sm) * -1);
+  z-index: 2;
+}
+.photo.shift-up-md {
+  margin-top: calc(var(--overlap-md) * -1);
+  z-index: 3;
+}
+
+/* منع التداخل على الموبايل لو ضاق العرض كثير */
+@media (max-width: 399px) {
+  .photo.shift-up-sm,
+  .photo.shift-up-md { margin-top: 0; }
+}
+
+/* حواف الصور قائمة (لو بدك تدوير غيّر القيمة) */
+:root {
+  --radius: 0px;   /* غيّرها لـ 12px لو بدك زوايا دائرية */
+}
+
+/* تحسينات صغيرة */
+.photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* طبقة خفييفة لتجانس الحواف عند التداخل */
+  box-shadow: inset 0 0 0 1px rgba(15,23,42,0.05);
 }
