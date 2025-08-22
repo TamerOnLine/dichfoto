@@ -30,6 +30,9 @@ class StaticFilesCached(StaticFiles):
 # ===== FastAPI setup =====
 app = FastAPI(title=settings.SITE_TITLE)
 
+media_root = str(settings.STORAGE_DIR)
+app.mount("/media", StaticFilesCached(directory=media_root), name="media")
+
 # إنشاء الجداول (إن لم تكن موجودة)
 Base.metadata.create_all(bind=engine)
 
