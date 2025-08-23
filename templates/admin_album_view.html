@@ -32,7 +32,9 @@
         {% for a in assets %}
           <figure class="card asset-card">
             <div class="thumb-wrap">
-              <img src="/admin/thumb/{{ a.id }}" alt="{{ a.original_name }}" loading="lazy" decoding="async" />
+              <img src="/admin/thumb/{{ a.id }}" alt="{{ a.original_name }}" loading="lazy" decoding="async"
+                   style="display:block;width:100%;height:auto;object-fit:contain;aspect-ratio:auto;background:#f3f4f6;">
+ 
               {% if album.cover_asset_id == a.id %}
                 <span class="badge badge-cover" title="Cover">★ Cover</span>
               {% endif %}

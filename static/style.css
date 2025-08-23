@@ -1,10 +1,10 @@
 /* =====================================================================
-   Dich Foto – Cleaned & Structured Stylesheet
-   - Consolidated variables
-   - Unified Lightbox styles (no duplicates)
-   - Organized media queries
-   - Removed unnecessary !important
-   - Kept existing layout/behavior
+   Dich Foto – Reviewed Stylesheet (v2)
+   - Keeps existing layout/behavior (hero, masonry, lightbox)
+   - Removes conflicting rules / duplicates
+   - Improves hero overlay positioning (bottom clamp)
+   - Adds accessible focus-visible styles
+   - Adds optional modifiers (.hero--cover, .card--no-crop)
    ===================================================================== */
 
 /* =============================
@@ -13,10 +13,10 @@
 :root{
   /* Layout */
   --container: min(1300px, 100% - 24px);
-  --gap: 12px;
+  --gap: 2px;
 
   /* Radii */
-  --radius: 0px;         /* squared corners as requested */
+  --radius: 0px;         /* squared corners */
   --radius-sm: 0px;
   --radius-card: 8px;
   --radius-img: 6px;
@@ -61,6 +61,9 @@ small{ color:var(--muted); }
 /* Links & Buttons */
 a{ color: inherit; text-decoration: none; }
 a:hover{ opacity: .96; }
+a:focus-visible, .btn:focus-visible, button:focus-visible{
+  outline: 2px solid #2563eb; outline-offset: 2px;
+}
 .btn{
   appearance: none; border: 0; background: var(--brand); color: var(--brand-contrast);
   padding: 10px 14px; font-weight: 600; border-radius: var(--radius);
@@ -84,28 +87,50 @@ footer .container{ padding:12px 0; }
    Hero (responsive cover)
    ============================= */
 .hero{
-  position: relative; width: 100%; aspect-ratio: 1/1; /* mobile: square */
-  overflow: hidden; background: #000; /* deliberate to keep black mask under image */
+  position: relative;
+  width: 100%;
+  height: 100vh;         /* Fill viewport height */
+  min-height: 100svh;    /* Better on mobile when URL bar collapses */
+  overflow: hidden;
+  background: #000;      /* Keep black mask under image */
 }
-@media (min-width:768px){ .hero{ aspect-ratio: 16/9; } }
 
+/* blurred background from LQIP/var */
 .hero-bg{
   position:absolute; inset:0;
   background-image: var(--hero-bg);
   background-size: cover; background-position: center;
   filter: blur(22px) brightness(.9); transform: scale(1.12);
 }
-.hero-link, .hero-img{ position:relative; z-index:1; display:block; width:100%; height:100%; }
-.hero-img{ object-fit: cover; }
 
+/* main hero image: keep current "contain" behavior */
+.hero-link, .hero-img{ position:relative; z-index:1; display:block; width:100%; height:100%; }
+.hero-img{
+  object-fit: contain; /* show full image by default (current behavior) */
+  max-height: 100%;    /* ensure it never exceeds hero bounds */
+}
+
+/* optional: force cover crop when you add the modifier .hero--cover */
+.hero.hero--cover .hero-img{ object-fit: cover; }
+
+/* unified overlay – no conflicting display/grid toggles */
 .hero-overlay{
-  position:absolute; inset:0; z-index:2;
-  display:flex; align-items:flex-end; justify-content:space-between; gap:12px;
-  padding: clamp(12px, 4vw, 32px);
+  position: absolute;
+  inset: 0;
   background: linear-gradient(to top, var(--overlay-soft), rgba(0,0,0,0) 70%);
+  pointer-events: none; /* overlay shouldn’t block clicks on image link */
+}
+
+/* hero-meta is centered horizontally and lifted from bottom with clamp */
+.hero-meta{
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: clamp(12px, 14vh, 22vh); /* flexible position above bottom */
+  width: min(1000px, 92vw);
+  text-align: center;
   color: #fff;
 }
-.hero-meta{ max-width:min(90vw, 900px); }
 .hero-sub{ margin:0; opacity:.9; }
 .hero-empty{ display:flex; flex-direction:column; align-items:center; justify-content:center;
   color:#fff; background: var(--brand); width:100%; height:100%; }
@@ -117,7 +142,7 @@ footer .container{ padding:12px 0; }
 
 .masonry{
   /* Responsive column counts via variables (can be overridden inline) */
-  --gap: 12px;
+  
   --cols-0: 2;       /* <480px */
   --cols-480: 2;     /* ≥480px */
   --cols-640: 3;     /* ≥640px */
@@ -149,6 +174,9 @@ footer .container{ padding:12px 0; }
   transition: transform .2s ease;
 }
 .card:hover img{ transform: scale(1.02); }
+
+/* optional: show full image inside card (no crop) */
+.card--no-crop img{ object-fit: contain; background:#000; }
 
 /* =============================
    Accessibility & Misc
@@ -229,7 +257,7 @@ body.no-scroll { overflow: hidden; }
 @media (min-width: 1200px){
   :root{ --container: min(1500px, 100% - 48px); }
   .gallery{ padding: 24px 0 40px; }
-  .masonry{ column-gap: 16px; width: min(1500px, 100% - 48px); }
+  .masonry{ width: min(1500px, 100% - 48px); }
   .card img{ transition: transform .2s ease, filter .2s ease; }
   .card:hover img{ transform: scale(1.025); filter: saturate(1.05); }
 }
@@ -239,18 +267,81 @@ body.no-scroll { overflow: hidden; }
   .lb-close{ width: 44px; height: 44px; }
 }
 
-@media (min-width: 1400px){
-  .hero{ aspect-ratio: 16/9; max-height: 70vh; }
-}
-
 @media (min-width: 1600px){
   :root{ --container: min(1700px, 100% - 64px); }
   .masonry{ width: min(1700px, 100% - 64px); }
 }
 
 /* =============================
-   Desktop-wide Masonry Fixes (kept but simplified)
+   Optional perf & legacy tweaks
    ============================= */
-.masonry .card{ overflow: visible; }
-.masonry .card img{ width: 100%; height: auto; max-height: none; object-fit: unset; }
-.masonry .card > a{ display: block; height: auto; }
+/* Reduce heavy effects on very small devices */
+@media (max-width: 480px){
+  .lb-img{ box-shadow: none; }
+  .card:hover img{ transform: none; }
+}
+
+.lb-like{
+  position: absolute;
+  bottom: clamp(8px, 1.2vw, 16px);
+  left: clamp(60px, 4vw, 80px);
+  width: 42px; height: 42px;
+  border-radius: 999px; border:0;
+  display: grid; place-items:center;
+  background: rgba(255,255,255,.14); color:#fff;
+  backdrop-filter: blur(4px);
+  cursor:pointer;
+  transition: background .15s ease, transform .2s ease;
+}
+.lb-like:hover{ background: rgba(255,255,255,.22); }
+.lb-like.liked{ color:#ff4d6d; transform: scale(1.2); }
+@media (min-width: 1024px){ .lb-like{ width:48px; height:48px; } }
+
+
+/* == Centered full-screen auth + large controls == */
+.auth-wrap{
+  min-height: 100svh;              /* ارتفاع شاشة كاملة */
+  display: grid;
+  place-items: center;              /* توسيط أفقي + عمودي */
+  padding: clamp(16px, 4vw, 48px);
+}
+
+.auth-card{
+  width: min(640px, 94vw);          /* أعرض شوي */
+  padding: clamp(24px, 4vw, 40px);  /* مساحة داخلية أكبر */
+  border-radius: 18px;
+}
+
+.auth-head{ text-align:center; margin-bottom: 20px; }
+.auth-title{ font-size: clamp(32px, 6vw, 56px); line-height:1.1; margin:0 0 8px; }
+.auth-desc{  font-size: clamp(15px, 2.4vw, 18px); margin:0; }
+
+/* نموذج كبير ومريح */
+.auth-form{ display:grid; gap: 16px; margin-top: 8px; }
+.auth-label{ font-size: 16px; }
+
+.auth-input-wrap{
+  display:flex; align-items:center; gap:10px;
+  padding-inline: 16px;
+  border-radius: 16px;
+  height: 56px;                     /* ارتفاع كبير للحقل */
+}
+.auth-input{
+  height: 100%;
+  font-size: 18px;                  /* خط كبير */
+  letter-spacing: .4px;
+}
+
+.auth-eye{
+  width: 46px; height: 46px;        /* زر العين أكبر */
+  border-radius: 12px;
+  font-size: 18px;
+}
+
+/* زر الدخول كبير */
+.auth-btn{
+  height: 56px;
+  font-size: 18px;
+  border-radius: 16px;
+  font-weight: 800;
+}

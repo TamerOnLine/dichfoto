@@ -6,25 +6,54 @@
 {% block content %}
 
 {% if locked %}
-  <section class="container" style="padding:24px 0">
-    <h1 style="margin:0 0 8px">{{ album.title }}</h1>
-    <p class="hero-sub" style="margin:0 0 16px">هذا الألبوم محمي. أدخل كلمة المرور للمتابعة.</p>
-    <form action="/s/{{ share.slug }}/unlock" method="post" class="form-box" style="max-width:420px">
-      <div class="form-group">
-        <label for="password">كلمة المرور</label>
-        <input id="password" type="password" name="password" required />
+<section class="auth-wrap">
+  <div class="auth-bg"></div>
+
+  <div class="auth-card" role="dialog" aria-labelledby="auth-title" aria-describedby="auth-desc">
+    <header class="auth-head">
+      <!-- لو عندك لوجو ضعه هنا بدلاً من النص -->
+      <div class="auth-brand">
+        <img src="/static/logo.svg" alt="Dich Foto" onerror="this.replaceWith(document.createTextNode('Dich Foto'))">
       </div>
-      <div class="form-actions">
-        <button class="btn" type="submit">فتح</button>
+
+      <h1 id="auth-title" class="auth-title serif">{{ album.title }}</h1>
+      <p id="auth-desc" class="auth-desc">
+        This album is protected — enter the password to continue.
+      </p>
+    </header>
+
+    {% if error %}
+      <div class="auth-alert" role="alert" aria-live="polite">
+        Incorrect password. Please try again.
       </div>
+    {% endif %}
+
+    <form action="/s/{{ share.slug }}/unlock" method="post" class="auth-form" novalidate>
+      <label class="auth-label" for="password">Password</label>
+
+      <div class="auth-input-wrap">
+        <input id="password" name="password" type="password" required
+               autocomplete="current-password" class="auth-input" placeholder="••••••••"
+               aria-describedby="auth-desc" />
+        <button type="button" class="auth-eye" aria-label="Show password" aria-pressed="false">👁</button>
+      </div>
+
+      <button class="auth-btn" type="submit" data-loading="Unlocking…">
+        Unlock
+      </button>
     </form>
-  </section>
+
+
+  </div>
+</section>
 {% else %}
 
-  <!-- الغلاف -->
+
+
+
+  <!-- الغلاف بنسبة 90% من عرض الشاشة -->
   <section class="hero" aria-label="Cover">
     {% if hero %}
-      <div class="hero-bg" style="--hero-bg:url('{{ hero.thumb }}');"></div>
       <a class="hero-link" href="{{ hero.url }}" target="_blank" rel="noopener">
         <img
           class="hero-img"
@@ -34,16 +63,33 @@
           {% if hero.width and hero.height %}width="{{ hero.width }}" height="{{ hero.height }}"{% endif %}
         />
       </a>
+
+      <!-- البيانات أسفل الصورة -->
       <div class="hero-overlay">
         <div class="hero-meta">
-          <h1 class="hero-title">{{ album.title }}</h1>
-          {% if album.photographer %}<p class="hero-sub">{{ album.photographer }}</p>{% endif %}
-          {% if album.event_date %}<p class="hero-sub">{{ album.event_date.strftime('%Y-%m-%d') }}</p>{% endif %}
+          {% if album.event_date %}
+            <p class="hero-date">{{ album.event_date.strftime('%d.%m.%Y') }}</p>
+          {% endif %}
+
+          <h1 class="hero-title serif">{{ album.title }}</h1>
+
+          {% if album.photographer %}
+            <p class="hero-sub">
+              Wedding photographer
+              {% if album.photographer_url %}
+                <a href="{{ album.photographer_url }}" target="_blank" rel="noopener">
+                  {{ album.photographer }}
+                </a>
+              {% else %}
+                {{ album.photographer }}
+              {% endif %}
+            </p>
+          {% endif %}
         </div>
       </div>
     {% else %}
       <div class="hero-empty">
-        <h1 class="hero-title">{{ album.title }}</h1>
+        <h1 class="hero-title serif">{{ album.title }}</h1>
         <p class="hero-sub">لا توجد صور بعد</p>
       </div>
     {% endif %}
@@ -53,18 +99,19 @@
   <section id="gallery" class="gallery">
     <div class="masonry"
         style="
-          --gap:16px;          /* مسافة أكبر على الديسكتوب */
-          --cols-0:2;          /* موبايل صغير */
+          --gap:4px;
+          --cols-0:2;
           --cols-480:2;
-          --cols-640:3;        /* تابلت */
+          --cols-640:3;
           --cols-900:3;
-          --cols-1200:5;       /* ديسكتوب عادي */
-          --cols-1600:6;       /* شاشات عريضة */
+          --cols-1200:5;
+          --cols-1600:6;
         ">
-
       {% for a in assets %}
         <figure class="card">
-          <a href="{{ a.url }}" data-full="{{ a.url }}">
+          <a href="{{ a.url }}"
+             data-full="{{ a.url }}"
+             data-name="{{ a.original_name or a.name }}">
             <img
               src="{{ a.thumb }}"
               alt="{{ a.name or album.title }}"
@@ -82,6 +129,77 @@
 {% endblock %}
 
 {% block scripts_extra %}
+<style>
+  .serif{ font-family: Georgia, "Times New Roman", Times, serif; }
+
+  /* الحاوية: شاشة كاملة مع توسيط المحتوى عموديًا */
+  .hero{
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100svh;      /* أفضل على الموبايل */
+    background:#000;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:1px;
+    padding:20px 0;
+  }
+
+  /* الصورة: 90% من عرض الشاشة، والطول يتكيف بدون قص */
+  .hero-img{
+    width: 90%;
+    height: auto;
+    max-height: 85vh;        /* يمنع تجاوز ارتفاع الشاشة */
+    object-fit: contain;
+    display: block;
+    border-radius: 12px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.45);
+  }
+
+  /* البيانات أسفل الصورة كبلوك عادي */
+  .hero-overlay{
+    width: 90%;
+    max-width: 1100px;
+    text-align: center;
+    color:#fff;
+    padding: 0;
+    background: none;
+  }
+
+  .hero-date{
+    margin: 0 0 6px;
+    font-size: clamp(12px, 2.8vw, 18px);
+    color:#e5e7eb;
+    text-shadow: 0 2px 8px rgba(0,0,0,.45);
+  }
+
+  .hero-title{
+    margin: 0 0 8px;
+    font-weight: 600;
+    line-height: .95;
+    font-size: clamp(28px, 6vw, 60px);
+    text-shadow: 0 4px 18px rgba(0,0,0,.35);
+  }
+
+  .hero-sub{
+    margin: 0;
+    font-size: clamp(14px, 3.2vw, 20px);
+    color:#f1f5f9;
+    text-shadow: 0 2px 8px rgba(0,0,0,.35);
+  }
+  .hero-sub a{
+    color:#fff; text-decoration: underline; text-underline-offset: 3px;
+  }
+
+  /* سبنر اللايتبوكس */
+  .lb-spin[hidden]{ display: none !important; }
+
+  /* تمييز زر الإعجاب عند الضغط */
+  .lb-like.liked{ color:#ff4d6d; transform: scale(1.2); transition: transform .2s ease; }
+</style>
+
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const links = Array.from(document.querySelectorAll(".masonry a[data-full]"));
@@ -94,57 +212,114 @@ document.addEventListener("DOMContentLoaded", () => {
       <div class="lb-spin" hidden></div>
       <img class="lb-img" alt="" />
       <div class="lb-cap"></div>
-      <button class="lb-btn lb-prev" aria-label="السابق">❮</button>
-      <button class="lb-btn lb-next" aria-label="التالي">❯</button>
-      <button class="lb-btn lb-close" aria-label="إغلاق">✕</button>
-      <div class="lb-swipe-hint">اسحب لليمين/لليسار</div>
+      <button class="lb-btn lb-prev" aria-label="Previous">❮</button>
+      <button class="lb-btn lb-next" aria-label="Next">❯</button>
+      <button class="lb-btn lb-close" aria-label="Close">✕</button>
+
+      <!-- زر التحميل -->
+      <a class="lb-btn lb-download"
+         aria-label="Download"
+         href="#"
+         download
+         rel="noopener"
+         style="top:auto; bottom: clamp(8px, 1.2vw, 16px); left: clamp(8px, 1.2vw, 16px); transform:none;">
+        ⬇
+      </a>
+
+      <!-- زر المشاركة -->
+      <button class="lb-btn lb-share" aria-label="Share"
+        style="top:auto; bottom: clamp(8px, 1.2vw, 16px); right: clamp(60px, 4vw, 80px); transform:none;">
+        ⤴
+      </button>
+
+      <!-- زر الإعجاب -->
+      <button class="lb-btn lb-like" aria-label="Like"
+        style="top:auto; bottom: clamp(8px, 1.2vw, 16px); left: clamp(60px, 4vw, 80px); transform:none;">
+        ❤
+      </button>
+
+      <div class="lb-swipe-hint">Swipe left/right</div>
     </div>
   `;
   document.body.appendChild(wrap);
 
-  const img = wrap.querySelector(".lb-img");
-  const cap = wrap.querySelector(".lb-cap");
-  const spin = wrap.querySelector(".lb-spin");
-  const btnPrev = wrap.querySelector(".lb-prev");
-  const btnNext = wrap.querySelector(".lb-next");
-  const btnClose = wrap.querySelector(".lb-close");
+  const img         = wrap.querySelector(".lb-img");
+  const cap         = wrap.querySelector(".lb-cap");
+  const spin        = wrap.querySelector(".lb-spin");
+  const btnPrev     = wrap.querySelector(".lb-prev");
+  const btnNext     = wrap.querySelector(".lb-next");
+  const btnClose    = wrap.querySelector(".lb-close");
+  const btnLike     = wrap.querySelector(".lb-like");
+  const btnShare    = wrap.querySelector(".lb-share");
+  const btnDownload = wrap.querySelector(".lb-download");
+
+  // === تخزين إعجابات محلياً (لكل صورة) ===
+  const likedStoreKey = "dichfoto_likes";
+  const liked = new Set(JSON.parse(localStorage.getItem(likedStoreKey) || "[]"));
+  function saveLikes() {
+    localStorage.setItem(likedStoreKey, JSON.stringify([...liked]));
+  }
 
   let idx = 0;
 
+  function makeFilename(fullUrl, humanName, index){
+    try{
+      const u = new URL(fullUrl, window.location.origin);
+      const ext = u.pathname.split(".").pop()?.toLowerCase();
+      const base = (humanName || `photo-${index+1}`).trim()
+        .replace(/[^\p{L}\p{N}\-_ ]/gu, "")
+        .replace(/\s+/g, "-");
+      if (ext && ext.length <= 5) return `${base}.${ext}`;
+      return `${base}.jpg`;
+    }catch{
+      return `${humanName || "photo"}-${index+1}.jpg`;
+    }
+  }
+
   function show(i){
     idx = (i + links.length) % links.length;
-    const a = links[idx];
+    const a    = links[idx];
     const full = a.dataset.full || a.href;
-    const alt = a.querySelector("img")?.getAttribute("alt") || "";
+    const alt  = a.querySelector("img")?.getAttribute("alt") || "";
+    const name = (a.getAttribute("data-name") || alt || `photo-${idx+1}`).trim();
 
     document.body.classList.add("no-scroll");
     wrap.classList.add("show");
     img.classList.remove("ready");
     spin.hidden = false;
 
+    // حدّث حالة زر الإعجاب بحسب هذه الصورة
+    const isLiked = liked.has(full);
+    btnLike.classList.toggle("liked", isLiked);
+    btnLike.setAttribute("aria-pressed", isLiked ? "true" : "false");
+
+    // عند اكتمال تحميل الصورة
+    const onImgLoad = () => {
+      img.removeEventListener("load", onImgLoad);
+      img.classList.add("ready");
+      spin.hidden = true;
+      cap.textContent = alt;
+
+      // تجهيز زر التحميل (الرابط + اسم الملف)
+      btnDownload.href = full;
+      btnDownload.setAttribute("download", makeFilename(full, name, idx));
+    };
+    img.addEventListener("load", onImgLoad, { once: true });
+
+    // تحميل مُسبق ثم العرض
     const preload = new Image();
     preload.onload = () => {
       img.src = preload.src;
       img.alt = alt;
-      cap.textContent = alt;
-      img.classList.add("ready");
-      spin.hidden = true;
 
       // تحميل مُسبق للصورة التالية والسابقة
-      const ahead = new Image();
-      ahead.src = (links[(idx+1)%links.length].dataset.full
-                  || links[(idx+1)%links.length].href);
-
-      const behind = new Image();
-      behind.src = (links[(idx-1+links.length)%links.length].dataset.full
-                   || links[(idx-1+links.length)%links.length].href);
-    }; // <-- إغلاق preload.onload لازم يكون هنا
-
+      new Image().src = (links[(idx+1)%links.length].dataset.full || links[(idx+1)%links.length].href);
+      new Image().src = (links[(idx-1+links.length)%links.length].dataset.full || links[(idx-1+links.length)%links.length].href);
+    };
     preload.onerror = () => {
-      cap.textContent = "تعذّر تحميل الصورة";
+      cap.textContent = "Failed to load image";
       spin.hidden = true;
     };
-
     preload.src = full;
   }
 
@@ -172,6 +347,43 @@ document.addEventListener("DOMContentLoaded", () => {
     a.addEventListener("click", (e) => { e.preventDefault(); show(i); });
   });
 
+  // زر الإعجاب (لكل صورة)
+  btnLike.addEventListener("click", () => {
+    const a = links[idx];
+    const full = a.dataset.full || a.href;
+    if (liked.has(full)) {
+      liked.delete(full);
+      btnLike.classList.remove("liked");
+      btnLike.setAttribute("aria-pressed", "false");
+    } else {
+      liked.add(full);
+      btnLike.classList.add("liked");
+      btnLike.setAttribute("aria-pressed", "true");
+    }
+    saveLikes();
+
+    // اختياري: أرسل للباك-إند
+    fetch("/api/like", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ url: full, liked: btnLike.classList.contains("liked") })
+    }).catch(err => console.log("Like failed:", err));
+  });
+
+  // زر المشاركة
+  btnShare.addEventListener("click", async () => {
+    const full = links[idx].dataset.full || links[idx].href;
+    const alt  = links[idx].querySelector("img")?.getAttribute("alt") || "";
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: alt || document.title, text: alt || "Check this photo", url: full });
+      } catch (err) { console.log("Share canceled or failed:", err); }
+    } else {
+      try { await navigator.clipboard.writeText(full); alert("Link copied to clipboard!"); }
+      catch { alert(full); }
+    }
+  });
+
   // Swipe للموبايل
   let sx=0, sy=0, dx=0, dy=0, swiping=false;
   wrap.addEventListener("touchstart", (e) => {
@@ -190,4 +402,3 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 {% endblock %}
-

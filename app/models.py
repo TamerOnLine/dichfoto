@@ -9,6 +9,8 @@ class Album(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     photographer = Column(String, nullable=True)
+    photographer_url = Column(String(255), nullable=True)
+    
     event_date = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -112,3 +114,12 @@ class Asset(Base):
             setattr(self, f"{ext}_960", d.get(960))
             setattr(self, f"{ext}_1280", d.get(1280))
             setattr(self, f"{ext}_1920", d.get(1920))
+
+
+class Like(Base):
+    __tablename__ = "likes"
+    id = Column(Integer, primary_key=True, index=True)
+    url = Column(String, index=True)       # رابط الصورة
+    user_id = Column(Integer, nullable=True)  # (اختياري) لو عندك مستخدمين
+    liked = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

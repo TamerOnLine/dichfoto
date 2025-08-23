@@ -162,6 +162,7 @@ Dev_requirements.txt
 .cache/
 storage/
 secrets/
+migrations/
 
 # OS junk
 .DS_Store

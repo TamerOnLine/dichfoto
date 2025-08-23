@@ -127,7 +127,8 @@ def admin_home(request: Request):
             "admin_login.html",
             {"request": request, "site_title": settings.SITE_TITLE},
         )
-    return RedirectResponse(url="/admin/albums/new", status_code=302)
+    return RedirectResponse(url="/admin/albums", status_code=302)
+
 
 
 @router.get("/albums/new", response_class=HTMLResponse)
@@ -144,21 +145,22 @@ def create_album(
     request: Request,
     title: str = Form(...),
     photographer: Optional[str] = Form(None),
+    photographer_url: Optional[str] = Form(None),  # جديد
     event_date: Optional[str] = Form(None),
     db: Session = Depends(get_db),
 ):
     require_admin(request)
-    ed = None
-    if event_date:
-        try:
-            ed = datetime.fromisoformat(event_date)
-        except Exception:
-            ed = None
-    album = models.Album(title=title, photographer=photographer, event_date=ed)
+    album = models.Album(
+        title=title.strip(),
+        photographer=photographer or None,
+        photographer_url=photographer_url or None,  # جديد
+        event_date=_parse_dt(event_date),
+    )
     db.add(album)
     db.commit()
     db.refresh(album)
     return RedirectResponse(url=f"/admin/albums/{album.id}", status_code=302)
+
 
 
 @router.get("/albums/{album_id}", response_class=HTMLResponse)
@@ -607,3 +609,67 @@ def clear_cover(request: Request, album_id: int, db: Session = Depends(get_db)):
     album.cover_asset_id = None
     db.commit()
     return RedirectResponse(url=f"/admin/albums/{album_id}", status_code=303)
+
+@router.get("/albums/{album_id}/edit", response_class=HTMLResponse)
+def edit_album_page(request: Request, album_id: int, db: Session = Depends(get_db)):
+    album = db.query(models.Album).get(album_id)
+    if not album:
+        raise HTTPException(404, "Album not found")
+    return templates.TemplateResponse("admin/edit_album.html", {"request": request, "album": album})
+
+
+from datetime import datetime
+
+def _parse_dt(value: str | None):
+    if not value:
+        return None
+    v = value.strip()
+    try:
+        # يقبل "23.08.2025"
+        return datetime.strptime(v, "%d.%m.%Y")
+    except ValueError:
+        return None
+
+
+
+
+@router.get("/albums/{album_id}/edit", response_class=HTMLResponse)
+def edit_album_page(request: Request, album_id: int, db: Session = Depends(get_db)):
+    require_admin(request)
+    album = db.get(models.Album, album_id)
+    if not album:
+        raise HTTPException(404, "Album not found")
+    return templates.TemplateResponse("admin/edit_album.html", {"request": request, "album": album})
+
+
+@router.post("/albums/{album_id}/update")
+def update_album(
+    request: Request,
+    album_id: int,
+    title: str = Form(...),
+    photographer: str | None = Form(None),
+    photographer_url: str | None = Form(None),
+    event_date: str | None = Form(None),
+    db: Session = Depends(get_db),
+):
+    require_admin(request)
+    album = db.get(models.Album, album_id)
+    if not album:
+        raise HTTPException(404, "Album not found")
+
+    album.title = title.strip()
+    album.photographer = photographer or None
+    album.photographer_url = photographer_url or None
+    album.event_date = _parse_dt(event_date)
+
+    db.commit()
+    return RedirectResponse(url=f"/admin/albums/{album.id}", status_code=303)
+
+@router.get("/albums", response_class=HTMLResponse)
+def list_albums(request: Request, db: Session = Depends(get_db)):
+    require_admin(request)
+    albums = db.query(models.Album).order_by(models.Album.created_at.desc()).all()
+    return templates.TemplateResponse(
+        "admin_album_list.html",
+        {"request": request, "albums": albums, "site_title": settings.SITE_TITLE},
+    )
