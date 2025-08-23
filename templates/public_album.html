@@ -1,0 +1,193 @@
+{% extends 'layout.html' %}
+
+{% block title %}{{ album.title }} – {{ site_title }}{% endblock %}
+{% block header_class %}hide{% endblock %}
+
+{% block content %}
+
+{% if locked %}
+  <section class="container" style="padding:24px 0">
+    <h1 style="margin:0 0 8px">{{ album.title }}</h1>
+    <p class="hero-sub" style="margin:0 0 16px">هذا الألبوم محمي. أدخل كلمة المرور للمتابعة.</p>
+    <form action="/s/{{ share.slug }}/unlock" method="post" class="form-box" style="max-width:420px">
+      <div class="form-group">
+        <label for="password">كلمة المرور</label>
+        <input id="password" type="password" name="password" required />
+      </div>
+      <div class="form-actions">
+        <button class="btn" type="submit">فتح</button>
+      </div>
+    </form>
+  </section>
+{% else %}
+
+  <!-- الغلاف -->
+  <section class="hero" aria-label="Cover">
+    {% if hero %}
+      <div class="hero-bg" style="--hero-bg:url('{{ hero.thumb }}');"></div>
+      <a class="hero-link" href="{{ hero.url }}" target="_blank" rel="noopener">
+        <img
+          class="hero-img"
+          src="{{ hero.thumb }}"
+          alt="{{ album.title }}"
+          fetchpriority="high" loading="eager" decoding="async"
+          {% if hero.width and hero.height %}width="{{ hero.width }}" height="{{ hero.height }}"{% endif %}
+        />
+      </a>
+      <div class="hero-overlay">
+        <div class="hero-meta">
+          <h1 class="hero-title">{{ album.title }}</h1>
+          {% if album.photographer %}<p class="hero-sub">{{ album.photographer }}</p>{% endif %}
+          {% if album.event_date %}<p class="hero-sub">{{ album.event_date.strftime('%Y-%m-%d') }}</p>{% endif %}
+        </div>
+      </div>
+    {% else %}
+      <div class="hero-empty">
+        <h1 class="hero-title">{{ album.title }}</h1>
+        <p class="hero-sub">لا توجد صور بعد</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- المعرض (شلال) -->
+  <section id="gallery" class="gallery">
+    <div class="masonry"
+        style="
+          --gap:16px;          /* مسافة أكبر على الديسكتوب */
+          --cols-0:2;          /* موبايل صغير */
+          --cols-480:2;
+          --cols-640:3;        /* تابلت */
+          --cols-900:3;
+          --cols-1200:5;       /* ديسكتوب عادي */
+          --cols-1600:6;       /* شاشات عريضة */
+        ">
+
+      {% for a in assets %}
+        <figure class="card">
+          <a href="{{ a.url }}" data-full="{{ a.url }}">
+            <img
+              src="{{ a.thumb }}"
+              alt="{{ a.name or album.title }}"
+              loading="lazy" decoding="async"
+              {% if a.width and a.height %}width="{{ a.width }}" height="{{ a.height }}"{% endif %}
+            />
+          </a>
+        </figure>
+      {% endfor %}
+    </div>
+  </section>
+
+{% endif %}
+
+{% endblock %}
+
+{% block scripts_extra %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const links = Array.from(document.querySelectorAll(".masonry a[data-full]"));
+  if (!links.length) return;
+
+  const wrap = document.createElement("div");
+  wrap.id = "lightbox";
+  wrap.innerHTML = `
+    <div class="lb-stage">
+      <div class="lb-spin" hidden></div>
+      <img class="lb-img" alt="" />
+      <div class="lb-cap"></div>
+      <button class="lb-btn lb-prev" aria-label="السابق">❮</button>
+      <button class="lb-btn lb-next" aria-label="التالي">❯</button>
+      <button class="lb-btn lb-close" aria-label="إغلاق">✕</button>
+      <div class="lb-swipe-hint">اسحب لليمين/لليسار</div>
+    </div>
+  `;
+  document.body.appendChild(wrap);
+
+  const img = wrap.querySelector(".lb-img");
+  const cap = wrap.querySelector(".lb-cap");
+  const spin = wrap.querySelector(".lb-spin");
+  const btnPrev = wrap.querySelector(".lb-prev");
+  const btnNext = wrap.querySelector(".lb-next");
+  const btnClose = wrap.querySelector(".lb-close");
+
+  let idx = 0;
+
+  function show(i){
+    idx = (i + links.length) % links.length;
+    const a = links[idx];
+    const full = a.dataset.full || a.href;
+    const alt = a.querySelector("img")?.getAttribute("alt") || "";
+
+    document.body.classList.add("no-scroll");
+    wrap.classList.add("show");
+    img.classList.remove("ready");
+    spin.hidden = false;
+
+    const preload = new Image();
+    preload.onload = () => {
+      img.src = preload.src;
+      img.alt = alt;
+      cap.textContent = alt;
+      img.classList.add("ready");
+      spin.hidden = true;
+
+      // تحميل مُسبق للصورة التالية والسابقة
+      const ahead = new Image();
+      ahead.src = (links[(idx+1)%links.length].dataset.full
+                  || links[(idx+1)%links.length].href);
+
+      const behind = new Image();
+      behind.src = (links[(idx-1+links.length)%links.length].dataset.full
+                   || links[(idx-1+links.length)%links.length].href);
+    }; // <-- إغلاق preload.onload لازم يكون هنا
+
+    preload.onerror = () => {
+      cap.textContent = "تعذّر تحميل الصورة";
+      spin.hidden = true;
+    };
+
+    preload.src = full;
+  }
+
+  function close(){
+    wrap.classList.remove("show");
+    document.body.classList.remove("no-scroll");
+  }
+
+  // تنقّل و إغلاق
+  btnPrev.addEventListener("click", () => show(idx-1));
+  btnNext.addEventListener("click", () => show(idx+1));
+  btnClose.addEventListener("click", close);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) close(); });
+
+  // كيبورد
+  document.addEventListener("keydown", (e) => {
+    if (!wrap.classList.contains("show")) return;
+    if (e.key === "Escape") close();
+    if (e.key === "ArrowLeft") show(idx-1);
+    if (e.key === "ArrowRight") show(idx+1);
+  });
+
+  // فتح من الشبكة
+  links.forEach((a, i) => {
+    a.addEventListener("click", (e) => { e.preventDefault(); show(i); });
+  });
+
+  // Swipe للموبايل
+  let sx=0, sy=0, dx=0, dy=0, swiping=false;
+  wrap.addEventListener("touchstart", (e) => {
+    const t=e.touches[0]; sx=t.clientX; sy=t.clientY; swiping=true;
+  }, {passive:true});
+  wrap.addEventListener("touchmove", (e) => {
+    if(!swiping) return; const t=e.touches[0]; dx=t.clientX-sx; dy=t.clientY-sy;
+  }, {passive:true});
+  wrap.addEventListener("touchend", () => {
+    if(!swiping) return; swiping=false;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) show(idx+1); else show(idx-1);
+    }
+    dx=dy=0;
+  });
+});
+</script>
+{% endblock %}
+

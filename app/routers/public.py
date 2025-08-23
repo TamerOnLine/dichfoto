@@ -152,3 +152,5 @@ def get_thumb(slug: str, asset_id: int, db: Session = Depends(get_db)):
            'font-family="Segoe UI, Roboto, sans-serif" font-size="16" fill="#64748b">No preview</text>'
            '</svg>')
     return Response(content=svg, media_type="image/svg+xml")
+
+
